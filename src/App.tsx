@@ -1,6 +1,7 @@
-import { ChangeEvent, FormEvent, HTMLProps, ReactNode, useCallback, useRef } from 'react';
+import { ChangeEvent, FormEvent, HTMLProps, ReactNode, useCallback, useRef, useState } from 'react';
 import { observable, computed, action, makeObservable } from 'mobx';
 import { observer } from 'mobx-react-lite';
+import { nanoid } from "nanoid";
 
 interface ICountry { id:string, countryName:string, currencyCode:string, rate: number }
 const countries:ICountry[] = [
@@ -31,7 +32,6 @@ class Store {
       page           : observable,
       country        : computed,
       package        : computed,
-      currencyCode   : computed,
       standardPremium: computed,
       packages       : computed,
       premium        : computed,
@@ -47,17 +47,16 @@ class Store {
   age        = 50   ; setAge (v: number) { this.age  = v }
   countryId  = "HKD"; setCountryId(id: string) { this.countryId = id; }
   packageId  = "sd" ; setPackageId(id: string) { this.packageId = id; }
-  page: Page = 1    ;
+  page: Page = 2    ;
 
   get country() { return mCountry.get(this.countryId) ?? countries[0] }
   get package() { return mPackage.get(this.packageId) ?? packages [0] }
 
-  get currencyCode() { return this.country.currencyCode }
   get standardPremium() { return (10 * this.age * this.country.rate); }
   get packages() { return packages.map(p => ({ ...p, addPrice:this.standardPremium *  p.addRatio })) }
   get premium() { return this.standardPremium * (1 + this.package.addRatio) }
 
-  get currencyFormat() { return new Intl.NumberFormat(undefined, { style: 'currency', currency: store.currencyCode }); }
+  get currencyFormat() { return new Intl.NumberFormat(undefined, { style: 'currency', currency: this.country.currencyCode }); }
 
   restart() {
     this.page = 1;
@@ -92,8 +91,10 @@ const percentFormat = new Intl.NumberFormat(undefined, { style: 'percent' });
 const Page1 = observer<{}>(function Page1() {
   return (
     <PageCard title="Hello There!">
-      <p>Let's buy some insurance. It is going to take only a few steps</p>
-      <Button buttonType="primary" onClick={() => store.goNext()}>Start</Button>
+      <p className="pt-6 md:p-8 text-center space-y-4">Let's buy some insurance. It is going to take only a few steps</p>
+      <ButtonGroup>
+        <Button buttonType="primary" onClick={() => store.goNext()}>Start</Button>
+      </ButtonGroup>
     </PageCard>
   );
 });
@@ -105,55 +106,92 @@ const Page2 = observer<{}>(function Page2() {
 
   return (
     <PageCard title="Tell us about yourself">
-      <form onSubmit={onSubmit}>
-        <label>Name</label>
-        <Input value={store.name} onChange={store.setName} required placeholder="Add text"/>
+      <form onSubmit={onSubmit} className="">
+        <div className="mt-4 space-y-4">
+          <FormItem label="Name" htmlFor="name" input={(
+            <Input name="name" value={store.name} onChange={store.setName} required
+              placeholder="Add text" className="w-full" />
+          )} />
+        </div>
 
-        <label>Age</label>
-        <NumberInput type="number" value={store.age} onChange={store.setAge} />
+        <div className="mt-4 space-y-4">
+          <FormItem label="Age" htmlFor="age" input={(
+            <NumberInput type="number" value={store.age} onChange={store.setAge} className="w-full" />
+          )} />
+        </div>
 
-        <label>Where do you live</label>
-        <CountrySelect value={store.countryId} onChange={store.setCountryId} />
+        <div className="mt-4 space-y-4">
+          <FormItem label="Where do you live" htmlFor="country" input={(
+            <CountrySelect value={store.countryId} onChange={store.setCountryId} />
+          )} />
+        </div>
 
-        {store.packages.map(p => (<label>
-          <input type="radio" name="package" value={p.id} checked={store.packageId == p.id} onChange={e => store.packageId = e.target.value} />
-          {p.packageName}
-          {(p.addPrice > 0) && (<>
-            (+{store.currencyFormat.format(p.addPrice)}{store.currencyCode}, {percentFormat.format(p.addRatio)})
-          </>)}
-        </label>))}
+        <div className="mt-4 space-y-4">
+          <RadioGroup value={store.packageId} onChange={store.setPackageId} options={
+            store.packages.map(p => ({ value:p.id, label:(<>
+              {p.packageName}
+              {(p.addPrice > 0) && (<>
+                {" (+"}{store.currencyFormat.format(p.addPrice)}, {percentFormat.format(p.addRatio)}{")"}
+              </>)}
+            </>) }))}
+          />
+        </div>
 
-        <h2>Your premium is: {store.currencyFormat.format(store.premium)}</h2>
+        <h2 className="text-lg font-medium mt-8">
+          Your premium is: {store.currencyFormat.format(store.premium)}
+        </h2>
 
-        <Button buttonType="secondary" onClick={() => store.goBack()}>Back</Button>
-        <Button buttonType="primary"   type="submit">Next</Button>
+        <ButtonGroup className="mt-8">
+          <Button buttonType="secondary" onClick={() => store.goBack()}>Back</Button>
+          <Button buttonType="primary"   type="submit">Next</Button>
+        </ButtonGroup>
       </form>
     </PageCard>
   );
 });
+
+function ButtonGroup({ className, children }: { className?: string, children: ReactNode }) {
+  return (
+    <div className={"flex flex-row justify-center items-center "+ className}>
+      <div className="flex gap-4">
+        {children}
+      </div>
+    </div>
+  )
+}
+
 const Page2Error = observer<{}>(function Page2Error() {
   return (
     <PageCard title="Ooops">
-      Your age is over our accepted limit.
-      We are sorry but we cannnot insure you now
+      <div className="text-center">
+        <p>Your age is over our accepted limit.</p>
+        <p>We are sorry but we cannnot insure you now</p>
+      </div>
 
-      <Button buttonType="primary" onClick={() => store.restart()}>Ok {":("}</Button>
+      <ButtonGroup className="mt-8">
+        <Button buttonType="primary" onClick={store.restart}>Ok {":("}</Button>
+      </ButtonGroup>
     </PageCard>
   );
 });
 const Page3 = observer<{}>(function Page3() {
   return (
     <PageCard title="Summary">
-      {store.name},
+      <p className="text-center text-lg font-medium">{store.name},</p>
 
-      Name: {store.name}
-      Age: {store.age}
-      Where do you live: {store.country.countryName}
-      Package: {store.package.packageName}
-      Premium: {store.premium}{store.currencyCode}
 
-      <Button buttonType="secondary" onClick={() => store.goBack()}>Back</Button>
-      <Button buttonType="primary" onClick={() => store.buy()}>Buy</Button>
+      <ul className="text-center my-8">
+        <li className="my-4">Name: {store.name}</li>
+        <li className="my-4">Age: {store.age}</li>
+        <li className="my-4">Where do you live: {store.country.countryName}</li>
+        <li className="my-4">Package: {store.package.packageName}</li>
+        <li className="my-4">Premium: {store.currencyFormat.format(store.premium)}</li>
+      </ul>
+
+      <ButtonGroup>
+        <Button buttonType="secondary" onClick={() => store.goBack()}>Back</Button>
+        <Button buttonType="primary" onClick={() => store.buy()}>Buy</Button>
+      </ButtonGroup>
     </PageCard>
   );
 });
@@ -183,11 +221,15 @@ export default App;
 
 function PageCard({ title, children }: { title:ReactNode, children?:ReactNode }) {
   return (
-    <div>
-        <h1>{title}</h1>
+    <div className="grid h-screen place-items-center">
+      <div className="mt-4 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-900/5 rounded-xl p-8 w-1/2 sm:w-full md:w-1/2 ">
+        <div className="pt-6 md:p-8 text-center space-y-4">
+          <h1 className="text-xl font-medium">{title}</h1>
+        </div>
 
         {children}
       </div>
+    </div>
   )
 }
 
@@ -198,8 +240,9 @@ interface ButtontProps extends HTMLProps<HTMLButtonElement> {
 }
 function Button(props: ButtontProps) {
   return (
-    <button {...props} />
-  )
+    <button className={["h-10 px-6 font-semibold rounded-md", props.buttonType ==  "primary" ? "bg-black text-white" : "border border-slate-200 text-slate-900"].join(" ")}
+      {...props} />
+  );
 }
 
 interface InputProps extends Omit<HTMLProps<HTMLInputElement>,"onChange"> {
@@ -211,7 +254,7 @@ function Input(props: InputProps) {
     rProps.current.onChange?.(event.target.value);
   }, []);
   return (
-    <input {...props} onChange={onChange} />
+    <input className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md" {...props} onChange={onChange} />
   )
 }
 
@@ -234,7 +277,9 @@ interface SelectProps extends Omit<HTMLProps<HTMLSelectElement>,"onChange"> {
 function Select(props: SelectProps) {
   const rProps = useRef(props); rProps.current = props;
   return (
-    <select {...props} onChange={(event) => { rProps.current.onChange?.(event.target.value) }} />
+    <select className="focus:ring-indigo-500 focus:border-indigo-500 h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 sm:text-sm rounded-md w-full"
+      {...props}
+      onChange={(event) => { rProps.current.onChange?.(event.target.value) }}  />
   )
 }
 
@@ -245,5 +290,45 @@ function CountrySelect(props: SelectProps) {
         <option key={c.id} value={c.id}>{c.countryName}</option>
       ))}
     </Select>
+  )
+}
+
+function RadioGroup(props: { value:string, onChange:(v:string) => void, options:{ value:string, label:ReactNode }[] }) {
+  const rProps = useRef(props); rProps.current = props;
+  const { value, options } =  props;
+  const [name] = useState(nanoid);
+  const onChange = useCallback((event:ChangeEvent<HTMLInputElement>) => { rProps.current.onChange?.(event.target.value); }, []);
+  return (
+    <fieldset>
+      {options.map(o => {
+        const id = name+o.value
+        return (
+          <div className="flex items-center">
+            <input type="radio"
+              id={id}
+              name={name}
+              value={o.value}
+              checked={value == o.value}
+              onChange={onChange}
+              className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
+            />
+            <label htmlFor={id} className="ml-3 block text-sm font-medium text-gray-700">
+              {o.label}
+            </label>
+          </div>
+        );
+      })}
+    </fieldset>
+  )
+}
+
+function FormItem({ label, htmlFor, input }: { label:ReactNode, htmlFor:string, input:ReactNode }) {
+  return (
+    <>
+      <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700">{label}</label>
+      <div className="mt-1 relative rounded-md shadow-sm">
+        {input}
+      </div>
+    </>
   )
 }
