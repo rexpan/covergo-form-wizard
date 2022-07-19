@@ -32,7 +32,7 @@ export class Store {
   age        = 50   ; setAge (v: number) { this.age  = v }
   countryId  = "HKD"; setCountryId(id: string) { this.countryId = id; }
   packageId  = "sd" ; setPackageId(id: string) { this.packageId = id; }
-  page: Page = 2    ;
+  page: Page = 1    ;
 
   get country() { return mCountry.get(this.countryId) ?? countries[0] }
   get package() { return mPackage.get(this.packageId) ?? packages [0] }
@@ -54,6 +54,9 @@ export class Store {
   }
   submit() {
     // validate input
+    if (!this.name || this.age <= 0) { return; }
+
+    //
     if (100 < this.age) { this.page = 2.5; return; }
 
     // if everything ok

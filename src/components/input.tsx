@@ -49,7 +49,7 @@ export function RadioGroup(props: { value:string, onChange:(v:string) => void, o
       {options.map(o => {
         const id = name+o.value
         return (
-          <div className="flex items-center">
+          <div key={o.value} className="flex items-center">
             <input type="radio"
               id={id}
               name={name}

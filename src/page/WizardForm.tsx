@@ -47,14 +47,17 @@ const Page2 = observer<{}>(function Page2() {
       <form onSubmit={onSubmit} className="">
         <div className="mt-4 space-y-4">
           <FormItem label="Name" htmlFor="name" input={(
-            <Input name="name" value={store.name} onChange={store.setName} required
+            <Input value={store.name} onChange={store.setName}
+              name="name" required
               placeholder="Add text" className="w-full" />
           )} />
         </div>
 
         <div className="mt-4 space-y-4">
           <FormItem label="Age" htmlFor="age" input={(
-            <NumberInput type="number" value={store.age} onChange={store.setAge} className="w-full" />
+            <NumberInput type="number" value={store.age} onChange={store.setAge}
+              name="age"
+              className="w-full" />
           )} />
         </div>
 
@@ -110,7 +113,6 @@ const Page3 = observer<{}>(function Page3() {
     <PageCard title="Summary">
       <p className="text-center text-lg font-medium">{store.name},</p>
 
-
       <ul className="text-center my-8">
         <li className="my-4">Name: {store.name}</li>
         <li className="my-4">Age: {store.age}</li>
@@ -120,8 +122,8 @@ const Page3 = observer<{}>(function Page3() {
       </ul>
 
       <ButtonGroup>
-        <Button buttonType="secondary" onClick={() => store.goBack()}>Back</Button>
-        <Button buttonType="primary" onClick={() => store.buy()}>Buy</Button>
+        <Button buttonType="secondary" onClick={store.goBack}>Back</Button>
+        <Button buttonType="primary" onClick={store.buy}>Buy</Button>
       </ButtonGroup>
     </PageCard>
   );
@@ -133,7 +135,7 @@ const Page404 = observer<{}>(function Page404() {
     <PageCard title="Ooops">
       Something went wrong.
 
-      <Button buttonType="primary" onClick={() => store.restart()}>Ok {":("}</Button>
+      <Button buttonType="primary" onClick={store.restart}>Ok {":("}</Button>
     </PageCard>
   );
 });
