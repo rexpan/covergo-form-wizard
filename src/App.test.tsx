@@ -1,5 +1,5 @@
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 import { describe, expect, it, vi } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/react';
@@ -10,7 +10,7 @@ function setup() {
     return { app };
 }
 
-describe('Form', () => {
+describe('App', () => {
   it('renders without crashing', () => {
     setup();
   });
